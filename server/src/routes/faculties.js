@@ -17,7 +17,7 @@ router.get("/me", async (req, res, next) => {
   }
 });
 
-router.get("/", requireRole("hod", "admin", "guest"), async (req, res, next) => {
+router.get("/", requireRole("hod", "admin"), async (req, res, next) => {
   try {
     const docs = await Faculty.find({}).sort({ department: 1, name: 1 }).lean();
     const riskByFid = new Map(
@@ -48,7 +48,6 @@ router.get("/:id", async (req, res, next) => {
     if (
       req.user.role !== "hod" &&
       req.user.role !== "admin" &&
-      req.user.role !== "guest" &&
       req.user.facultyId !== req.params.id
     ) {
       return res.status(403).json({

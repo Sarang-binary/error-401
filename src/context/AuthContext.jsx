@@ -53,11 +53,6 @@ export function AuthProvider({ children }) {
     return persistSession(newToken, newUser);
   }
 
-  async function guest() {
-    const { token: newToken, user: newUser } = await api.guest();
-    return persistSession(newToken, newUser);
-  }
-
   async function logout() {
     if (token) {
       try {
@@ -84,7 +79,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ token, user, isAuthenticated: !!token && !!user, login, register, guest, logout, refresh }}>
+    <AuthContext.Provider value={{ token, user, isAuthenticated: !!token && !!user, login, register, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

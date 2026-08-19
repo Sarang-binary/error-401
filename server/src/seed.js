@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import { config } from "./config.js";
 import { Session } from "./models/Session.js";
 import { User } from "./models/User.js";
-import { ClassSession, Deadline, Duty, Faculty, RiskScore, Suggestion } from "./models/data.js";
+import { ClassSession, College, Deadline, Duty, Faculty, RiskScore, Suggestion } from "./models/data.js";
 import { computeRisk } from "./services/risk.js";
 import { generateSuggestions } from "./services/suggest.js";
+import { COLLEGES_BY_UNIVERSITY, UNIVERSITIES } from "./colleges-data.js";
 
 const ASSIGNMENTS = [
   ["Dr. Anjali Sharma", "University of Metro", "Central Campus"],
@@ -50,18 +52,46 @@ async function recomputeAll() {
   return processed;
 }
 
+async function createMainUser() {
+  const passwordHash = await bcrypt.hash("sarang", 10);
+  await User.create({
+    university: "*",
+    campus: "*",
+    name: "Sarang",
+    email: "sarang@gmail.com",
+    passwordHash,
+    role: "hod",
+    department: "Computer Science",
+    designation: "Principal / HOD",
+  });
+}
+
 async function main() {
   await mongoose.connect(config.mongoUrl, { dbName: config.dbName, serverSelectionTimeoutMS: 8000 });
 
   await Session.deleteMany({});
   await User.deleteMany({});
+  await createMainUser();
+
+  await College.deleteMany({});
+  await College.insertMany(
+    UNIVERSITIES.map((name) => ({
+      name,
+      colleges: COLLEGES_BY_UNIVERSITY[name] || [],
+    }))
+  );
+  const collegeCount = UNIVERSITIES.reduce(
+    (sum, name) => sum + (COLLEGES_BY_UNIVERSITY[name] || []).length,
+    0
+  );
 
   await assignOrganizations();
   const processed = await recomputeAll();
 
   console.log(`Organization data ready in '${config.dbName}'`);
+  console.log(`Seeded ${UNIVERSITIES.length} universities with ${collegeCount} colleges`);
   console.log(`Recomputed risk scores for ${processed} faculty`);
-  console.log("No demo accounts — users register from the site, or use 'Skip login' guest mode.");
+  console.log("Main demo account: sarang@gmail.com / sarang (Principal/HOD · works from ANY university and college)");
 
   await mongoose.disconnect();
 }

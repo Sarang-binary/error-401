@@ -110,6 +110,17 @@ export const Suggestion = mongoose.model(
   )
 );
 
+export const College = mongoose.model(
+  "College",
+  new mongoose.Schema(
+    {
+      name: { type: String, required: true, unique: true, trim: true },
+      colleges: { type: [String], default: [] },
+    },
+    { collection: "colleges", versionKey: false }
+  )
+);
+
 export function docToApi(doc) {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject({ versionKey: false }) : { ...doc };

@@ -107,11 +107,9 @@ export default function Dashboard() {
               {new Date(data.computed_at).toLocaleString()}
             </p>
           </div>
-          {user.role !== "guest" && (
-            <button type="button" onClick={onRecompute} disabled={busy} className={cls.btn}>
-              {busy ? "Computing…" : "Recompute risk scores"}
-            </button>
-          )}
+          <button type="button" onClick={onRecompute} disabled={busy} className={cls.btn}>
+            {busy ? "Computing…" : "Recompute risk scores"}
+          </button>
         </header>
 
         <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">

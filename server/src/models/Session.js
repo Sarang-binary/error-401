@@ -6,6 +6,8 @@ const sessionSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     tokenHash: { type: String, required: true, index: true },
     role: { type: String, required: true },
+    university: { type: String },
+    campus: { type: String },
     createdAt: { type: Date, default: Date.now },
     expiresAt: { type: Date, required: true },
   },

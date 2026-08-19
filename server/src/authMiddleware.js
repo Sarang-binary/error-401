@@ -36,21 +36,6 @@ export async function authenticate(req, res, next) {
     }
 
     if (!decoded.sub) {
-      if (session.role === "guest") {
-        req.user = {
-          id: null,
-          name: "Guest",
-          email: null,
-          role: "guest",
-          department: null,
-          designation: null,
-          university: null,
-          campus: null,
-          facultyId: null,
-          sessionId: session.sessionId,
-        };
-        return next();
-      }
       return res.status(401).json({ error: "Session is invalid. Please log in again." });
     }
 
@@ -66,8 +51,8 @@ export async function authenticate(req, res, next) {
       role: user.role,
       department: user.department || null,
       designation: user.designation || null,
-      university: user.university,
-      campus: user.campus,
+      university: session.university || user.university,
+      campus: session.campus || user.campus,
       facultyId: user.facultyId ? user.facultyId.toString() : null,
       sessionId: session.sessionId,
     };

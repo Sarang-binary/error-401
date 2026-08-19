@@ -1,17 +1,14 @@
 import { useEffect, useReducer } from "react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
-import UniversityStep from "../components/onboarding/UniversityStep";
-import CampusStep from "../components/onboarding/CampusStep";
 import LoginStep from "../components/onboarding/LoginStep";
 import RegisterStep from "../components/onboarding/RegisterStep";
 
 const initialState = {
-  step: 0,
-  mode: "entry",
   universities: [],
-  selectedUniversity: null,
-  selectedCampus: null,
+  selectedUniversity: "",
+  selectedCampus: "",
+  mode: null,
   loading: false,
   error: null,
   busy: false,
@@ -25,26 +22,22 @@ function reducer(state, action) {
       return { ...state, loading: false, universities: action.universities };
     case "LOAD_FAILED":
       return { ...state, loading: false, error: action.error };
-    case "MODE_SIGNIN":
-      return { ...state, mode: "signin", step: 1, error: null };
-    case "MODE_REGISTER":
-      return { ...state, mode: "register", step: 1, error: null };
-    case "GUEST_BUSY":
-      return { ...state, busy: true, error: null };
-    case "GUEST_FAILED":
-      return { ...state, busy: false, error: action.error };
     case "SELECT_UNIVERSITY":
       return {
         ...state,
         selectedUniversity: action.university,
-        selectedCampus: null,
-        step: 2,
+        selectedCampus: "",
+        mode: null,
         error: null,
       };
     case "SELECT_CAMPUS":
-      return { ...state, selectedCampus: action.campus, step: 3, error: null };
+      return { ...state, selectedCampus: action.campus, error: null };
+    case "MODE_SIGNIN":
+      return { ...state, mode: "signin", error: null };
+    case "MODE_REGISTER":
+      return { ...state, mode: "register", error: null };
     case "BACK":
-      return { ...state, step: Math.max(1, state.step - 1), error: null };
+      return { ...state, mode: null, error: null };
     case "FORM_ERROR":
       return { ...state, error: action.error, busy: false };
     case "FORM_BUSY":
@@ -56,7 +49,7 @@ function reducer(state, action) {
 
 export default function Onboarding() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { login, register, guest } = useAuth();
+  const { login, register } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -74,19 +67,12 @@ export default function Onboarding() {
     };
   }, []);
 
-  function handleUniversitySelect(university) {
-    if (university.campuses.length === 0) {
-      dispatch({
-        type: "LOAD_FAILED",
-        error: `No campuses found for ${university.name}. Please contact your administrator.`,
-      });
-      return;
-    }
-    dispatch({ type: "SELECT_UNIVERSITY", university: university.name });
+  function handleUniversityChange(e) {
+    dispatch({ type: "SELECT_UNIVERSITY", university: e.target.value });
   }
 
-  function handleCampusSelect(campus) {
-    dispatch({ type: "SELECT_CAMPUS", campus });
+  function handleCampusChange(e) {
+    dispatch({ type: "SELECT_CAMPUS", campus: e.target.value });
   }
 
   function handleLogin(payload) {
@@ -111,15 +97,11 @@ export default function Onboarding() {
     });
   }
 
-  function handleGuest() {
-    dispatch({ type: "GUEST_BUSY" });
-    guest().catch((err) => {
-      dispatch({ type: "GUEST_FAILED", error: err.message });
-    });
-  }
-
-  const currentUniversity = state.universities.find((u) => u.name === state.selectedUniversity);
-  const steps = ["University", "Campus", state.mode === "register" ? "Details" : "Login"];
+  const currentUniversity = state.universities.find(
+    (u) => u.name === state.selectedUniversity
+  );
+  const campuses = currentUniversity ? currentUniversity.campuses : [];
+  const ready = !!state.selectedUniversity && !!state.selectedCampus;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950">
@@ -139,136 +121,123 @@ export default function Onboarding() {
               Faculty Burnout Risk &amp; Workload Analyzer
             </h1>
             <p className="mt-2 text-sm text-white/60">
-              {state.step === 0
-                ? "Sign in, create an account, or explore as a guest"
-                : "Complete the steps to get started"}
+              {state.mode
+                ? `${state.selectedUniversity} · ${state.selectedCampus}`
+                : "Pick your university and college to get started"}
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-xl backdrop-blur-md sm:p-8">
-            {state.step === 0 ? (
-              <div className="flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "MODE_SIGNIN" })}
-                  className="rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white transition hover:bg-indigo-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "MODE_REGISTER" })}
-                  className="rounded-xl border border-white/25 bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-                >
-                  Create account
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGuest}
-                  disabled={state.busy}
-                  className="rounded-xl border border-white/25 bg-white/10 px-4 py-3 font-semibold text-white/80 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
-                >
-                  {state.busy ? "Entering site…" : "Skip the login and enter the site"}
-                </button>
+            {!state.mode && (
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="pick-university"
+                    className="mb-1 block text-sm font-medium text-white/80"
+                  >
+                    University
+                  </label>
+                  <select
+                    id="pick-university"
+                    value={state.selectedUniversity}
+                    onChange={handleUniversityChange}
+                    disabled={state.loading}
+                    className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <option value="" disabled className="bg-slate-900">
+                      {state.loading ? "Loading universities…" : "Pick University Name"}
+                    </option>
+                    {state.universities.map((u) => (
+                      <option key={u.name} value={u.name} className="bg-slate-900">
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="pick-campus"
+                    className="mb-1 block text-sm font-medium text-white/80"
+                  >
+                    College
+                  </label>
+                  <select
+                    id="pick-campus"
+                    value={state.selectedCampus}
+                    onChange={handleCampusChange}
+                    disabled={!state.selectedUniversity}
+                    className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="" disabled className="bg-slate-900">
+                      {!state.selectedUniversity
+                        ? "Pick college name"
+                        : campuses.length === 0
+                          ? "No colleges found"
+                          : "Pick college name"}
+                    </option>
+                    {campuses.map((c) => (
+                      <option key={c.name} value={c.name} className="bg-slate-900">
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {state.error && (
                   <p role="alert" className="mt-1 text-center text-sm text-rose-300">
                     {state.error}
                   </p>
                 )}
-              </div>
-            ) : (
-              <>
-                <ol className="mb-6 flex items-center gap-2" aria-label="Onboarding progress">
-                  {steps.map((label, i) => {
-                    const done = i < state.step - 1;
-                    const current = i === state.step - 1;
-                    return (
-                      <li key={label} className="flex flex-1 items-center gap-2">
-                        <span
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            done
-                              ? "bg-emerald-400 text-emerald-950"
-                              : current
-                                ? "bg-indigo-400 text-indigo-950"
-                                : "bg-white/10 text-white/50"
-                          }`}
-                        >
-                          {done ? "✓" : i + 1}
-                        </span>
-                        <span
-                          className={`text-xs font-medium ${current ? "text-white" : "text-white/50"}`}
-                        >
-                          {label}
-                        </span>
-                        {i < steps.length - 1 && (
-                          <span aria-hidden="true" className="h-px flex-1 bg-white/20" />
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
 
-                {state.step === 1 && (
-                  <UniversityStep
-                    universities={state.universities}
-                    selected={state.selectedUniversity}
-                    onSelect={handleUniversitySelect}
-                    error={state.error}
-                    loading={state.loading}
-                  />
-                )}
-                {state.step === 2 && (
-                  <CampusStep
-                    university={state.selectedUniversity}
-                    campuses={currentUniversity ? currentUniversity.campuses : []}
-                    selected={state.selectedCampus}
-                    onSelect={handleCampusSelect}
-                    onBack={() => dispatch({ type: "BACK" })}
-                    error={state.error}
-                  />
-                )}
-                {state.step === 3 && state.mode === "signin" && (
-                  <LoginStep
-                    university={state.selectedUniversity}
-                    campus={state.selectedCampus}
-                    busy={state.busy}
-                    error={state.error}
-                    onLogin={handleLogin}
-                    onBack={() => dispatch({ type: "BACK" })}
-                  />
-                )}
-                {state.step === 3 && state.mode === "register" && (
-                  <RegisterStep
-                    university={state.selectedUniversity}
-                    campus={state.selectedCampus}
-                    busy={state.busy}
-                    error={state.error}
-                    onRegister={handleRegister}
-                    onBack={() => dispatch({ type: "BACK" })}
-                  />
-                )}
-              </>
+                <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={!ready}
+                    onClick={() => dispatch({ type: "MODE_SIGNIN" })}
+                    className="rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!ready}
+                    onClick={() => dispatch({ type: "MODE_REGISTER" })}
+                    className="rounded-xl border border-white/25 bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+                  >
+                    Create a account
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {state.mode === "signin" && (
+              <LoginStep
+                university={state.selectedUniversity}
+                campus={state.selectedCampus}
+                busy={state.busy}
+                error={state.error}
+                onLogin={handleLogin}
+                onBack={() => dispatch({ type: "BACK" })}
+                onSwitchToRegister={() => dispatch({ type: "MODE_REGISTER" })}
+              />
+            )}
+            {state.mode === "register" && (
+              <RegisterStep
+                university={state.selectedUniversity}
+                campus={state.selectedCampus}
+                busy={state.busy}
+                error={state.error}
+                onRegister={handleRegister}
+                onBack={() => dispatch({ type: "BACK" })}
+              />
             )}
           </div>
 
           <p className="mt-6 text-center text-xs text-white/40">
-            No account yet?{" "}
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "MODE_REGISTER" })}
-              className="font-medium text-indigo-300 underline-offset-2 hover:underline"
-            >
-              Create one for free
-            </button>{" "}
-            · or{" "}
-            <button
-              type="button"
-              onClick={handleGuest}
-              disabled={state.busy}
-              className="font-medium text-indigo-300 underline-offset-2 hover:underline disabled:opacity-60"
-            >
-              skip the login and enter the site
-            </button>
+            Main demo account: <span className="text-white/70">sarang@gmail.com</span> /{" "}
+            <span className="text-white/70">sarang</span> (Principal/HOD · works with any university
+            and college) · No guest access — signing in is required
           </p>
         </div>
       </div>

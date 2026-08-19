@@ -34,17 +34,19 @@ npm run dev       # http://localhost:5173
 
 ## Getting started
 
-No accounts are pre-seeded. On the first screen choose one of:
+Login is mandatory — there is no guest/skip access. On the first screen:
 
-- **Sign in** — existing users (University → Campus → Email/Password).
-- **Create account** — choose a role: **Teacher** (pick your department) or **Principal / HOD**; registration signs you in automatically.
-- **Skip the login and enter the site** — browse as a guest (read-only; recompute disabled).
+1. **Pick University Name** (98 Maharashtra universities, e.g. University of Mumbai, Savitribai Phule Pune University…)
+2. **Pick college name** (150 colleges under their respective universities; the demo orgs University of Metro / Global Institute of Technology also appear)
+3. Choose **Sign in** (existing account) or **Create account**:
+   - **Teacher** — pick/type your department; linked to (or auto-created as) a faculty record.
+   - **Principal / HOD** — school principal or college HOD view.
 
-> Guest mode and registered Principal/HOD accounts see the HOD dashboard. Teacher accounts see only their own metrics.
+Teacher accounts see only their own metrics; Principal/HOD accounts see the HOD dashboard.
 
 ## Features
 
-- **Onboarding gateway:** entry screen (Sign in / Create account / Skip login) → University → Campus → form, with validation and error states; transitions to the dashboard without a page reload.
+- **Onboarding gateway:** first page = dependent University → College dropdowns (placeholder texts "Pick University Name" / "Pick college name"), then Sign in / Create account; validation and error states; transitions to the dashboard without a page reload.
 - **Self-service registration:** role selection differentiates **Teachers** from **Principal (schools) / HOD (college departments)**; teachers are linked to (or auto-created as) a faculty record.
 - **Glassmorphism dashboard:** department risk alert, teaching-hours summary, consecutive-class flags, 14-day deadline density, pending admin task queue, at-risk list.
 - **3D workload density visualizer:** prop-driven `@react-three/fiber` bars; height + color map to risk score; lazy-loaded chunk; orbit controls.
@@ -56,10 +58,9 @@ No accounts are pre-seeded. On the first screen choose one of:
 | Method | Endpoint | Auth | Description |
 | ------ | -------- | ---- | ----------- |
 | GET | `/api/health` | — | Server + DB status |
-| GET | `/api/meta` | — | Universities → campuses → departments (from `faculties`) |
-| GET | `/api/meta/departments` | — | Departments for a university + campus |
+| GET | `/api/meta` | — | Universities → colleges (union of `colleges` + `faculties` orgs) |
+| GET | `/api/meta/departments` | — | Departments for a university + college |
 | POST | `/api/auth/register` | — | Create account (role `teacher` or `hod`), returns JWT + user |
-| POST | `/api/auth/guest` | — | Guest session (read-only HOD view) |
 | POST | `/api/auth/login` | — | Login, returns JWT + user |
 | POST | `/api/auth/logout` | ✓ | Revokes session |
 | GET | `/api/auth/me` | ✓ | Current user |
@@ -106,11 +107,12 @@ server/
       dashboard.js        # HOD widget payloads
       recompute.js        # full recompute
     index.js              # app bootstrap
-    seed.js               # org assignment + recompute (no user accounts)
+    seed.js               # org assignment + colleges seeding + recompute (no user accounts)
+    colleges-data.js      # 98 Maharashtra universities + 150 colleges
 src/
   context/                # AuthContext, UiModeContext
   components/
-    onboarding/           # UniversityStep, CampusStep, LoginStep, RegisterStep
+    onboarding/           # LoginStep, RegisterStep
     widgets/              # RiskAlert, SummaryGrid, ConsecutiveClasses, DeadlineDensity, AdminTasks
     three/WorkloadDensity.jsx
     Navbar.jsx, ui.js

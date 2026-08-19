@@ -5,7 +5,7 @@ import { analyzeSchedule } from "../services/risk.js";
 
 const router = Router();
 
-router.use(authenticate, requireRole("hod", "admin", "guest"));
+router.use(authenticate, requireRole("hod", "admin"));
 
 const ADMIN_DUTY_CATEGORIES = ["Administrative", "Exam", "Committee"];
 const DAY_MS = 24 * 60 * 60 * 1000;

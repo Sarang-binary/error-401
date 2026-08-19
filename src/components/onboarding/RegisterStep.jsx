@@ -12,6 +12,8 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [department, setDepartment] = useState("");
   const [departments, setDepartments] = useState(null);
   const departmentsBusy = role === "teacher" && departments === null;
@@ -39,7 +41,9 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
       return "Enter a valid email address.";
     }
     if (!password) return "Password is required.";
-    if (password.length < 6) return "Password must be at least 6 characters long.";
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      return "Password must be at least 8 characters and include both letters and numbers.";
+    }
     if (password !== confirm) return "Passwords do not match.";
     if (role === "teacher" && !department) return "Please choose your department.";
     return null;
@@ -136,22 +140,36 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
             <label htmlFor="reg-department" className="mb-1 block text-sm font-medium text-white/80">
               Department
             </label>
-            <select
-              id="reg-department"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              disabled={departmentsBusy || departments.length === 0}
-              className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <option value="" disabled>
-                {departmentsBusy ? "Loading departments…" : "Select department"}
-              </option>
-              {departments.map((d) => (
-                <option key={d} value={d} className="bg-slate-900">
-                  {d}
+            {departments.length > 0 ? (
+              <select
+                id="reg-department"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                disabled={departmentsBusy}
+                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-wait disabled:opacity-60"
+              >
+                <option value="" disabled className="bg-slate-900">
+                  {departmentsBusy ? "Loading departments…" : "Select department"}
                 </option>
-              ))}
-            </select>
+                {departments.map((d) => (
+                  <option key={d} value={d} className="bg-slate-900">
+                    {d}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="reg-department"
+                type="text"
+                autoComplete="organization"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                placeholder={
+                  departmentsBusy ? "Loading departments…" : "Type your department name"
+                }
+              />
+            )}
           </div>
         )}
 
@@ -160,29 +178,54 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
             <label htmlFor="reg-password" className="mb-1 block text-sm font-medium text-white/80">
               Password
             </label>
-            <input
-              id="reg-password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="reg-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 pr-16 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={!password}
+                className="absolute inset-y-0 right-2 px-2 text-xs font-semibold text-white/60 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "HIDE" : "SHOW"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-white/50">
+              At least 8 characters, with letters and numbers
+            </p>
           </div>
           <div>
             <label htmlFor="reg-confirm" className="mb-1 block text-sm font-medium text-white/80">
               Confirm password
             </label>
-            <input
-              id="reg-confirm"
-              type="password"
-              autoComplete="new-password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="reg-confirm"
+                type={showConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 pr-16 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                disabled={!confirm}
+                className="absolute inset-y-0 right-2 px-2 text-xs font-semibold text-white/60 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={showConfirm ? "Hide password" : "Show password"}
+              >
+                {showConfirm ? "HIDE" : "SHOW"}
+              </button>
+            </div>
           </div>
         </div>
 

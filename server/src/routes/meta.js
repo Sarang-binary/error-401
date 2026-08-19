@@ -1,17 +1,28 @@
 import { Router } from "express";
-import { Faculty } from "../models/data.js";
+import { College, Faculty } from "../models/data.js";
 
 const router = Router();
 
 router.get("/meta", async (req, res, next) => {
   try {
-    const docs = await Faculty.find(
-      { university: { $ne: null }, campus: { $ne: null } },
-      { university: 1, campus: 1, department: 1 }
-    ).lean();
+    const [collegeDocs, facultyDocs] = await Promise.all([
+      College.find({}, { name: 1, colleges: 1 }).lean(),
+      Faculty.find(
+        { university: { $ne: null }, campus: { $ne: null } },
+        { university: 1, campus: 1, department: 1 }
+      ).lean(),
+    ]);
 
     const byUni = new Map();
-    for (const d of docs) {
+    for (const c of collegeDocs) {
+      if (!c.name) continue;
+      const campuses = new Map();
+      for (const name of c.colleges || []) {
+        if (name) campuses.set(name, new Set());
+      }
+      byUni.set(c.name, campuses);
+    }
+    for (const d of facultyDocs) {
       if (!d.university || !d.campus) continue;
       if (!byUni.has(d.university)) {
         byUni.set(d.university, new Map());

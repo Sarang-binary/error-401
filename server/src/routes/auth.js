@@ -44,9 +44,9 @@ router.post("/register", async (req, res, next) => {
   try {
     const { university, campus, name, email, password, role, department } = req.body || {};
 
-    if (!university || !campus || !name || !email || !password || !role) {
+    if (!university || !campus || !name || !password || !role) {
       return res.status(400).json({
-        error: "University, campus, name, email, password and role are all required.",
+        error: "University, campus, username, password and role are all required.",
       });
     }
     if (!["teacher", "hod"].includes(role)) {
@@ -57,41 +57,51 @@ router.post("/register", async (req, res, next) => {
         error: "Password must be at least 8 characters and include both letters and numbers.",
       });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: "Enter a valid email address." });
+
+    const org = {
+      university: String(university).trim(),
+      campus: String(campus).trim(),
+    };
+    const username = String(name).trim();
+
+    let normalizedEmail = null;
+    if (email && String(email).trim()) {
+      normalizedEmail = String(email).trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return res.status(400).json({ error: "Enter a valid email address." });
+      }
+    } else {
+      normalizedEmail = `${username.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || "user"}.demo@local`;
     }
 
     const existing = await User.findOne({
-      university: String(university).trim(),
-      campus: String(campus).trim(),
-      email: String(email).trim().toLowerCase(),
+      ...org,
+      $or: [{ email: normalizedEmail }, { name: username }],
     });
     if (existing) {
       return res.status(409).json({
-        error: "An account with this email already exists at this university and campus. Try signing in.",
+        error: "An account with this username or email already exists at this university and college. Try signing in.",
       });
     }
 
     let facultyId = null;
     if (role === "teacher") {
-      if (!department) {
-        return res.status(400).json({ error: "Department is required for teacher accounts." });
-      }
+      const dept = department ? String(department).trim() : "General";
       let faculty = await Faculty.findOne({
-        university: String(university).trim(),
-        campus: String(campus).trim(),
-        email: String(email).trim().toLowerCase(),
+        university: org.university,
+        campus: org.campus,
+        email: normalizedEmail,
       });
       if (!faculty) {
         faculty = await Faculty.create({
-          name: String(name).trim(),
-          email: String(email).trim().toLowerCase(),
-          department: String(department).trim(),
+          name: username,
+          email: normalizedEmail,
+          department: dept,
           designation: "Assistant Professor",
           contract_hours: 40,
           fte: 1,
-          university: String(university).trim(),
-          campus: String(campus).trim(),
+          university: org.university,
+          campus: org.campus,
         });
       }
       facultyId = faculty._id;
@@ -99,10 +109,10 @@ router.post("/register", async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(String(password), 10);
     const user = await User.create({
-      university: String(university).trim(),
-      campus: String(campus).trim(),
-      name: String(name).trim(),
-      email: String(email).trim().toLowerCase(),
+      university: org.university,
+      campus: org.campus,
+      name: username,
+      email: normalizedEmail,
       passwordHash,
       role: role === "teacher" ? "faculty" : "hod",
       department: department ? String(department).trim() : null,
@@ -110,14 +120,11 @@ router.post("/register", async (req, res, next) => {
       facultyId,
     });
 
-    const token = await createSession(user._id.toString(), user.role, {
-      university: String(university).trim(),
-      campus: String(campus).trim(),
-    });
+    const token = await createSession(user._id.toString(), user.role, org);
     res.status(201).json({ token, user: publicUser(user) });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ error: "An account with this email already exists here." });
+      return res.status(409).json({ error: "An account with this username or email already exists here." });
     }
     next(err);
   }

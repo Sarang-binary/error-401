@@ -1,51 +1,29 @@
-import { useEffect, useState } from "react";
-import { api } from "../../api";
+import { useState } from "react";
 
 const ROLES = [
   { value: "teacher", label: "Teacher", hint: "For faculty members" },
   { value: "hod", label: "Principal / HOD", hint: "Principal (schools) or HOD (college departments)" },
 ];
 
+const inputCls =
+  "w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
 export default function RegisterStep({ university, campus, busy, error, onRegister, onBack }) {
-  const [role, setRole] = useState("teacher");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [department, setDepartment] = useState("");
-  const [departments, setDepartments] = useState(null);
-  const departmentsBusy = role === "teacher" && departments === null;
-
-  useEffect(() => {
-    if (role !== "teacher") return;
-    let cancelled = false;
-    api
-      .departments(university, campus)
-      .then((data) => {
-        if (!cancelled) setDepartments(data.departments || []);
-      })
-      .catch(() => {
-        if (!cancelled) setDepartments([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [university, campus, role]);
 
   function validate() {
-    if (!name.trim()) return "Full name is required.";
-    if (!email.trim()) return "Email is required.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return "Enter a valid email address.";
-    }
+    if (!role) return "Select whether you are a Teacher or Principal/HOD.";
+    if (!username.trim()) return "Username is required.";
     if (!password) return "Password is required.";
     if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
       return "Password must be at least 8 characters and include both letters and numbers.";
     }
     if (password !== confirm) return "Passwords do not match.";
-    if (role === "teacher" && !department) return "Please choose your department.";
     return null;
   }
 
@@ -59,17 +37,15 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
     onRegister({
       university,
       campus,
-      name: name.trim(),
-      email: email.trim(),
+      name: username.trim(),
       password,
       role,
-      department: role === "teacher" ? department : null,
     });
   }
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white">Create your account</h2>
+      <h2 className="text-lg font-semibold text-white">Create a account</h2>
       <p className="mt-1 text-sm text-white/60">
         {university} · {campus}
       </p>
@@ -89,13 +65,10 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
               >
                 <input
                   type="radio"
-                  name="role"
+                  name="reg-role"
                   value={r.value}
                   checked={role === r.value}
-                  onChange={() => {
-                    setRole(r.value);
-                    setDepartment("");
-                  }}
+                  onChange={() => setRole(r.value)}
                   className="sr-only"
                 />
                 <span className="block text-sm font-semibold text-white">{r.label}</span>
@@ -106,72 +79,19 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
         </fieldset>
 
         <div>
-          <label htmlFor="reg-name" className="mb-1 block text-sm font-medium text-white/80">
-            Full name
+          <label htmlFor="reg-username" className="mb-1 block text-sm font-medium text-white/80">
+            Username
           </label>
           <input
-            id="reg-name"
+            id="reg-username"
             type="text"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            placeholder="Dr. Jane Doe"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className={inputCls}
+            placeholder="e.g. jane.doe"
           />
         </div>
-
-        <div>
-          <label htmlFor="reg-email" className="mb-1 block text-sm font-medium text-white/80">
-            Email
-          </label>
-          <input
-            id="reg-email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            placeholder="you@university.edu"
-          />
-        </div>
-
-        {role === "teacher" && (
-          <div>
-            <label htmlFor="reg-department" className="mb-1 block text-sm font-medium text-white/80">
-              Department
-            </label>
-            {departments.length > 0 ? (
-              <select
-                id="reg-department"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                disabled={departmentsBusy}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-wait disabled:opacity-60"
-              >
-                <option value="" disabled className="bg-slate-900">
-                  {departmentsBusy ? "Loading departments…" : "Select department"}
-                </option>
-                {departments.map((d) => (
-                  <option key={d} value={d} className="bg-slate-900">
-                    {d}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id="reg-department"
-                type="text"
-                autoComplete="organization"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                placeholder={
-                  departmentsBusy ? "Loading departments…" : "Type your department name"
-                }
-              />
-            )}
-          </div>
-        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -185,7 +105,7 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 pr-16 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                className={`${inputCls} pr-16`}
                 placeholder="••••••••"
               />
               <button
@@ -213,7 +133,7 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
                 autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 pr-16 text-white placeholder-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                className={`${inputCls} pr-16`}
                 placeholder="••••••••"
               />
               <button
@@ -244,7 +164,7 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
           disabled={busy}
           className="w-full rounded-lg bg-indigo-500 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:cursor-wait disabled:opacity-50"
         >
-          {busy ? "Creating account…" : "Create account"}
+          {busy ? "Creating account…" : "Create a account"}
         </button>
       </form>
 
@@ -253,7 +173,7 @@ export default function RegisterStep({ university, campus, busy, error, onRegist
         onClick={onBack}
         className="mt-5 text-sm text-white/60 underline underline-offset-2 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
       >
-        ← Change campus
+        ← Change college
       </button>
     </div>
   );

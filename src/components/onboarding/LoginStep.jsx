@@ -24,10 +24,7 @@ export default function LoginStep({
 
   function validate() {
     if (!role) return "Select whether you are a Teacher or Principal/HOD.";
-    if (!email.trim() || !password) return "Email and password are required.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return "Enter a valid email address.";
-    }
+    if (!email.trim() || !password) return "Username/email and password are required.";
     return null;
   }
 
@@ -78,12 +75,12 @@ export default function LoginStep({
 
         <div>
           <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-white/80">
-            Email
+            Username or Email
           </label>
           <input
             id="login-email"
-            type="email"
-            autoComplete="email"
+            type="text"
+            autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             aria-invalid={error && !email ? "true" : "false"}
